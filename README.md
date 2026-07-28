@@ -46,14 +46,14 @@ MAOS --> Analysis["Investment Analyst"]
 MAOS --> Risk["Risk Manager"]
 MAOS --> Portfolio["Portfolio Manager"]
 
-Research --> Knowledge["Shared Knowledge Base"]
+Research --> Knowledge["Knowledge & Memory Layer"]
 Analysis --> Knowledge
 Risk --> Knowledge
 Portfolio --> Knowledge
 
-Knowledge --> Dashboard["Investment Dashboard"]
+Knowledge --> Dashboard["AI Investment Company"]
 
-Dashboard --> Application["AI Investment Company"]
+Application --> Application["Investment Dashboard"]
 ```
 
 ---
