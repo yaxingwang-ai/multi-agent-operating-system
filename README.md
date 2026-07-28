@@ -34,9 +34,27 @@ Status: 🟢 Active Development
 
 ---
 
-## 🏗️ Project Structure
+## 🏗️ System Architecture
 
-Coming Soon
+```mermaid
+graph TD
+
+User --> MAOS["Multi-Agent Operating System"]
+
+MAOS --> Research["Research Agent"]
+MAOS --> Analysis["Investment Analyst"]
+MAOS --> Risk["Risk Manager"]
+MAOS --> Portfolio["Portfolio Manager"]
+
+Research --> Knowledge["Shared Knowledge Base"]
+Analysis --> Knowledge
+Risk --> Knowledge
+Portfolio --> Knowledge
+
+Knowledge --> Dashboard["Investment Dashboard"]
+
+Dashboard --> Application["AI Investment Company"]
+```
 
 ---
 
