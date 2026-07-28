@@ -51,9 +51,9 @@ Analysis --> Knowledge
 Risk --> Knowledge
 Portfolio --> Knowledge
 
-Knowledge --> Dashboard["AI Investment Company"]
+Knowledge --> Application["AI Investment Company"]
 
-Application --> Application["Investment Dashboard"]
+Application --> Dashboard["Investment Dashboard"]
 ```
 
 ---
