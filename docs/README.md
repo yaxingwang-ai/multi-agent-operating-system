@@ -13,13 +13,13 @@ This folder contains the project documentation for the AI Multi-Agent System.
 ## Repository Structure
 
 ```text
-multi-agent-operating-system
-│
+docs/
 ├── README.md
-├── LICENSE
-├── docs/
-│   ├── README.md
-│   ├── overview.md
-│   ├── architecture.md
-│   └── workflow.md
-```
+├── overview.md
+└── prompts/
+    ├── research-agent.md
+    ├── investment-analyst.md
+    ├── report-generator.md
+    ├── risk-manager.md
+    ├── portfolio-manager.md
+    └── market-monitor.md
