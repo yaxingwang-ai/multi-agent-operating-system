@@ -5,10 +5,13 @@ This folder contains the project documentation for the AI Multi-Agent System.
 ## Documents
 
 - Overview
-- System Architecture
-- Workflow
-- AI Employees
-- Prompt Library
+- Agent Prompts
+- Research Agent
+- Investment Analyst
+- Report Generator
+- Risk Manager
+- Portfolio Manager
+- Market Monitor
 
 ## Repository Structure
 
