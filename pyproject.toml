@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "maos"
+dynamic = ["version"]
+description = "Multi-Agent Operating System (MAOS) - V1.1 executable Research Agent"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+dependencies = [
+    "openai==3.33.0",
+    "openai-agents==0.23.1",
+    "python-dotenv==1.2.4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.1.1",
+]
+
+[project.scripts]
+maos-research = "maos.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "maos.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["maos*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
