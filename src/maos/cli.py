@@ -1,6 +1,7 @@
 """Command-line entry point for the MAOS Research Agent."""
 
 import argparse
+import logging
 import sys
 
 import openai
@@ -15,6 +16,9 @@ EXIT_OK = 0
 EXIT_RUN_ERROR = 1
 EXIT_CONFIG_ERROR = 2
 EXIT_INTERRUPTED = 130
+
+# SDK loggers whose records can include raw OpenAI error text.
+SDK_LOGGERS = ("openai", "openai.agents")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -35,6 +39,21 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def silence_sdk_logging() -> None:
+    """Keep SDK log records off stderr.
+
+    The SDK logs failed model calls before re-raising them, and with no
+    handler configured Python's last-resort handler prints them to stderr.
+    With OPENAI_AGENTS_DONT_LOG_MODEL_DATA=0 those records include the
+    OpenAI error message, which can echo part of the key.
+    """
+    for name in SDK_LOGGERS:
+        logger = logging.getLogger(name)
+        if not any(isinstance(h, logging.NullHandler) for h in logger.handlers):
+            logger.addHandler(logging.NullHandler())
+        logger.propagate = False
+
+
 def _error(message: str) -> None:
     print(f"Error: {message}", file=sys.stderr)
 
@@ -52,6 +71,7 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_CONFIG_ERROR
 
     set_default_openai_key(settings.openai_api_key, use_for_tracing=False)
+    silence_sdk_logging()
 
     # Exception messages can echo part of the key, so only types are printed.
     # run_research() disables tracing before the SDK run.

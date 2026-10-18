@@ -1,3 +1,4 @@
+import re
 from types import SimpleNamespace
 
 import pytest
@@ -7,6 +8,7 @@ from agents.tracing.traces import NoOpTrace
 
 from maos.agents.research_agent import (
     AGENT_NAME,
+    OUTPUT_SECTION_GUIDANCE,
     OUTPUT_SECTIONS,
     RESEARCH_AGENT_INSTRUCTIONS,
     EmptyResearchOutputError,
@@ -50,6 +52,41 @@ def test_instructions_list_every_output_section_in_order():
     assert positions == sorted(positions)
 
 
+V1_0_OUTPUT_SECTIONS = (
+    "Research Request",
+    "Key Findings",
+    "Key Facts and Evidence",
+    "Relevant Sources (Unverified)",
+    "Market or Company Insights",
+    "Handoff Notes for Next Agent",
+    "Limitations",
+)
+
+
+def test_output_sections_match_v1_0_names_and_order():
+    assert OUTPUT_SECTIONS == V1_0_OUTPUT_SECTIONS
+
+
+def test_instruction_headings_are_exactly_output_sections():
+    """Every level-2 heading in the prompt is a section, and vice versa."""
+    headings = re.findall(r"^## (.+)$", RESEARCH_AGENT_INSTRUCTIONS, flags=re.MULTILINE)
+    assert tuple(headings) == OUTPUT_SECTIONS
+
+
+def test_each_section_heading_is_followed_by_its_guidance():
+    for name, guidance in OUTPUT_SECTION_GUIDANCE.items():
+        assert guidance.strip()
+        assert f"## {name}\n{guidance}" in RESEARCH_AGENT_INSTRUCTIONS
+
+
+def test_output_block_closes_the_instructions():
+    output_block = RESEARCH_AGENT_INSTRUCTIONS.split("# Output\n", 1)[1]
+    assert output_block.startswith(
+        "\nRespond in Markdown using exactly these level-2 headings, in this order:"
+    )
+    assert output_block.endswith(OUTPUT_SECTION_GUIDANCE["Limitations"])
+
+
 def test_agent_has_no_tools_and_default_model():
     agent = build_research_agent()
     assert agent.name == AGENT_NAME
@@ -75,6 +112,33 @@ def test_format_input_with_all_fields():
 
 def test_format_input_with_request_only():
     assert format_research_input("Outlook") == "Research request: Outlook"
+
+
+@pytest.mark.parametrize("blank", ["", " ", "\t\n "], ids=["empty", "space", "mixed"])
+def test_format_input_omits_whitespace_only_fields(blank):
+    text = format_research_input("Outlook", subject=blank, topic=blank, period=blank)
+    assert text == "Research request: Outlook"
+
+
+@pytest.mark.parametrize("field", ["subject", "topic", "period"])
+def test_format_input_omits_each_whitespace_only_field(field):
+    values = {"subject": "ACME", "topic": "margins", "period": "FY2025", field: "   "}
+    text = format_research_input("Outlook", **values)
+    assert ": \n" not in text + "\n"
+    assert not text.endswith(": ")
+    assert len(text.splitlines()) == 3
+
+
+def test_format_input_strips_valid_fields():
+    text = format_research_input(
+        "Outlook", subject="  ACME  ", topic="\tmargins\n", period=" FY2025 "
+    )
+    assert text == (
+        "Research request: Outlook\n"
+        "Company or market: ACME\n"
+        "Research topic: margins\n"
+        "Relevant time period: FY2025"
+    )
 
 
 def test_run_research_uses_runner(monkeypatch):

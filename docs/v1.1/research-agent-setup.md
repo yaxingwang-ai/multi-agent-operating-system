@@ -101,7 +101,19 @@ Then edit `.env`:
 | `OPENAI_API_KEY` | Yes | Your OpenAI API key |
 | `MAOS_RESEARCH_MODEL` | No | Model name. Leave empty to use the SDK default |
 
-Variables already exported in your shell take precedence over `.env`.
+The CLI uses the nearest `.env`, searching upward from the directory you run
+it in, so run it from the repository root (or a subdirectory). This works the
+same for editable and regular installs.
+
+How values are resolved:
+
+1. Only `OPENAI_API_KEY` and `MAOS_RESEARCH_MODEL` are read from `.env`.
+2. A non-blank value exported in your shell takes precedence over `.env`.
+3. An exported value that is empty or whitespace-only (for example after
+   `export OPENAI_API_KEY=`) is treated as unset, so the `.env` value is used.
+4. Other OpenAI SDK settings, such as `OPENAI_BASE_URL`, `OPENAI_ORG_ID`, or
+   `OPENAI_AGENTS_DONT_LOG_MODEL_DATA`, are not loaded from `.env`. Export
+   them in your shell if you need them.
 
 ### API Key Safety
 
@@ -111,6 +123,15 @@ Variables already exported in your shell take precedence over `.env`.
 - Never put a key in source code, tests, logs, or commit messages.
 - The CLI never prints the key, and does not print OpenAI error messages,
   which can contain part of it.
+- The OpenAI Agents SDK logs failed requests before the CLI handles them.
+  In openai-agents 0.23.1 the error details in these log messages are
+  redacted by default. Setting `OPENAI_AGENTS_DONT_LOG_MODEL_DATA=0` makes
+  the SDK log the full OpenAI error message, which can contain part of the
+  key.
+- When run through the CLI (`maos-research` or `python -m maos`), MAOS
+  suppresses the output of the `openai` and `openai.agents` loggers, so
+  these SDK log messages are not written to stderr whatever that setting
+  is. As a result, `OPENAI_LOG` debug output is not shown either.
 - Check before committing: `git status` must not list `.env`.
 
 ## Usage
@@ -168,9 +189,14 @@ pytest
 The tests need no API key and make no network calls. Fixtures in
 `tests/conftest.py`:
 
-- Clear `OPENAI_API_KEY` and `MAOS_RESEARCH_MODEL`, and skip loading `.env`.
+- Clear `OPENAI_API_KEY` and `MAOS_RESEARCH_MODEL`, and make the `.env` lookup
+  find no file. Tests of the lookup write a temporary `.env` with a fake key
+  in a temporary directory.
 - Block outbound socket connections and DNS lookups.
 - Fail any test that reaches the real `Runner.run_sync` or `Runner.run`.
+  The logging tests use the real `Runner.run_sync` but replace the SDK's
+  HTTP call with a simulated authentication failure. Two run the CLI in a
+  subprocess, with network access blocked inside that process.
 
 `tests/test_offline_guard.py` checks that these guards trigger. The tests use
 a fake key only to check it is never printed.
@@ -194,7 +220,7 @@ Check that:
 
 | Message | Fix |
 |---|---|
-| `OPENAI_API_KEY is not set` | Create `.env` from `.env.example`, or export the variable |
+| `OPENAI_API_KEY is not set` | Create `.env` from `.env.example` in the directory you run the CLI from (or a parent), or export the variable |
 | `still contains the placeholder` | Replace the placeholder in `.env` with your key |
 | `OpenAI rejected the API key` | Check the key is valid and active |
 | `rate limit or quota exceeded` | Wait, or check your OpenAI billing and usage limits |

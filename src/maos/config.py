@@ -1,13 +1,13 @@
 """Environment configuration for MAOS.
 
-Secrets are read from the environment (optionally populated from a local,
-git-ignored .env file). Key values are never included in messages or reprs.
+Secrets are read from the environment, falling back to a local, git-ignored
+.env file. Key values are never included in messages or reprs.
 """
 
 import os
 from dataclasses import dataclass, field
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values, find_dotenv
 
 API_KEY_VAR = "OPENAI_API_KEY"
 MODEL_VAR = "MAOS_RESEARCH_MODEL"
@@ -24,14 +24,33 @@ class Settings:
     research_model: str | None = None
 
 
+def _read_dotenv() -> dict[str, str | None]:
+    """Read the nearest .env, searching upward from the working directory.
+
+    The search starts from the working directory, not this file, so it works
+    for both editable and regular installs. os.environ is not modified.
+    """
+    path = find_dotenv(usecwd=True)
+    return dotenv_values(path) if path else {}
+
+
+def _resolve(name: str, dotenv: dict[str, str | None]) -> str:
+    """Return a non-blank environment value, else the .env value, else ""."""
+    value = os.environ.get(name, "").strip()
+    if value:
+        return value
+    return (dotenv.get(name) or "").strip()
+
+
 def load_settings() -> Settings:
     """Load settings from the environment and an optional .env file.
 
-    Values already set in the environment take precedence over .env.
+    Non-blank environment values take precedence over .env. A variable that
+    is unset, empty, or whitespace-only in the environment falls back to .env.
     """
-    load_dotenv(override=False)
+    dotenv = _read_dotenv()
 
-    api_key = os.environ.get(API_KEY_VAR, "").strip()
+    api_key = _resolve(API_KEY_VAR, dotenv)
     if not api_key:
         raise ConfigError(
             f"{API_KEY_VAR} is not set. Copy .env.example to .env and add your "
@@ -43,5 +62,5 @@ def load_settings() -> Settings:
             "Replace it with your own key in .env."
         )
 
-    model = os.environ.get(MODEL_VAR, "").strip() or None
+    model = _resolve(MODEL_VAR, dotenv) or None
     return Settings(openai_api_key=api_key, research_model=model)

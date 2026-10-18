@@ -13,17 +13,35 @@ AGENT_NAME = "Research Agent"
 class EmptyResearchOutputError(Exception):
     """Raised when the agent run finishes without any output."""
 
-OUTPUT_SECTIONS = (
-    "Research Request",
-    "Key Findings",
-    "Key Facts and Evidence",
-    "Relevant Sources (Unverified)",
-    "Market or Company Insights",
-    "Handoff Notes for Next Agent",
-    "Limitations",
-)
 
-RESEARCH_AGENT_INSTRUCTIONS = """
+# Output headings and their guidance, in order. The Output block of the
+# instructions is generated from this, so the two cannot drift apart.
+OUTPUT_SECTION_GUIDANCE = {
+    "Research Request": (
+        "Restate the request, including any company or market, topic, and time period."
+    ),
+    "Key Findings": "The most important findings, as concise bullet points.",
+    "Key Facts and Evidence": 'Bullet points, each labelled "Fact:" or "Interpretation:".',
+    "Relevant Sources (Unverified)": (
+        "Types of sources or well-known publications the user should consult to\n"
+        "verify these findings. State that they have not been checked."
+    ),
+    "Market or Company Insights": (
+        "Objective insights on the market or company, clearly marked as interpretation."
+    ),
+    "Handoff Notes for Next Agent": (
+        "A short summary for a downstream analysis agent: what is established, what\n"
+        "is uncertain, and what must be verified with live data."
+    ),
+    "Limitations": (
+        "State that no live search was performed, that information may be out of date\n"
+        "relative to your training cut-off, and any other gaps in this research."
+    ),
+}
+
+OUTPUT_SECTIONS = tuple(OUTPUT_SECTION_GUIDANCE)
+
+_BASE_INSTRUCTIONS = """
 You are a Research Agent for an AI investment research system.
 
 Your role is to conduct structured investment research
@@ -74,31 +92,12 @@ name, a research topic, and a relevant time period.
 # Output
 
 Respond in Markdown using exactly these level-2 headings, in this order:
-
-## Research Request
-Restate the request, including any company or market, topic, and time period.
-
-## Key Findings
-The most important findings, as concise bullet points.
-
-## Key Facts and Evidence
-Bullet points, each labelled "Fact:" or "Interpretation:".
-
-## Relevant Sources (Unverified)
-Types of sources or well-known publications the user should consult to
-verify these findings. State that they have not been checked.
-
-## Market or Company Insights
-Objective insights on the market or company, clearly marked as interpretation.
-
-## Handoff Notes for Next Agent
-A short summary for a downstream analysis agent: what is established, what
-is uncertain, and what must be verified with live data.
-
-## Limitations
-State that no live search was performed, that information may be out of date
-relative to your training cut-off, and any other gaps in this research.
 """.strip()
+
+RESEARCH_AGENT_INSTRUCTIONS = "\n\n".join(
+    [_BASE_INSTRUCTIONS]
+    + [f"## {name}\n{guidance}" for name, guidance in OUTPUT_SECTION_GUIDANCE.items()]
+)
 
 
 def build_research_agent(model: str | None = None) -> Agent:
@@ -119,12 +118,15 @@ def format_research_input(
 ) -> str:
     """Combine the specification's inputs into a single prompt."""
     lines = [f"Research request: {request.strip()}"]
-    if subject:
-        lines.append(f"Company or market: {subject.strip()}")
-    if topic:
-        lines.append(f"Research topic: {topic.strip()}")
-    if period:
-        lines.append(f"Relevant time period: {period.strip()}")
+    # Strip before testing so whitespace-only values are omitted, not blank.
+    for label, value in (
+        ("Company or market", subject),
+        ("Research topic", topic),
+        ("Relevant time period", period),
+    ):
+        value = (value or "").strip()
+        if value:
+            lines.append(f"{label}: {value}")
     return "\n".join(lines)
 
 
