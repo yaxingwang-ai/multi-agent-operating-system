@@ -17,8 +17,9 @@ _MAX_QUOTED_HEADING = 60
 # Most problems included in an OutputValidationError message.
 MAX_REPORTED_PROBLEMS = 5
 
-# A level-2 ATX heading, with optional closing hashes ("## Name ##").
-_HEADING_RE = re.compile(r"^##[ \t]+(.*?)(?:[ \t]+#+)?[ \t]*$")
+# A level-2 ATX heading: up to three spaces, then "##", with optional closing
+# hashes ("## Name ##").
+_HEADING_RE = re.compile(r"^ {0,3}##[ \t]+(.*?)(?:[ \t]+#+)?[ \t]*$")
 # A fence line: up to three spaces, then ``` or ~~~ (or longer), then the rest.
 _FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
 
@@ -44,6 +45,13 @@ class OutputValidationError(Exception):
 
 class EmptyAnalysisOutputError(Exception):
     """Raised when the Investment Analyst run finishes without any output."""
+
+
+def _freeze_sections(stage_output) -> None:
+    """Store a read-only copy of ``sections``, so neither the object nor the
+    caller's original mapping can change it later."""
+    sections = MappingProxyType(dict(stage_output.sections))
+    object.__setattr__(stage_output, "sections", sections)
 
 
 @dataclass(frozen=True)
@@ -80,6 +88,9 @@ class ResearchReport:
     sections: Mapping[str, str]
     markdown: str
 
+    def __post_init__(self):
+        _freeze_sections(self)
+
 
 @dataclass(frozen=True)
 class InvestmentAnalysis:
@@ -87,6 +98,9 @@ class InvestmentAnalysis:
 
     sections: Mapping[str, str]
     markdown: str
+
+    def __post_init__(self):
+        _freeze_sections(self)
 
 
 @dataclass(frozen=True)

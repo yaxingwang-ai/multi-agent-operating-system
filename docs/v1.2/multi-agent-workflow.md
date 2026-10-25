@@ -201,12 +201,20 @@ Allowed:
 - A single code fence around the whole output.
 - Windows (CRLF) line endings.
 - Closing hashes, such as `## Limitations ##`.
+- Up to three leading spaces before a heading's `##`, such as
+  `   ## Limitations`. Indented headings are checked like any other, so an
+  indented unexpected heading is still rejected. With four or more spaces
+  the line is treated as section text, not a heading.
 - `## ` lines inside a fenced code block, which are treated as section text,
   not headings.
 
 Still rejected, so section names stay exact: bold headings
 (`## **Limitations**`), numbered headings (`## 7. Limitations`), and any
 other change to a heading's text.
+
+Known limitation: only `##`-style headings are checked, so a Setext-style
+heading (a line of text followed by a line of `---` or `===`) is not
+detected and can appear as an extra heading in the final report.
 
 A validation error lists at most five problems, followed by a count of the
 rest (for example, `...; and 3 more problems`). The exception's `problems`

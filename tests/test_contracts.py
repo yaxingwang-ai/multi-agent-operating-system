@@ -2,7 +2,13 @@ import dataclasses
 
 import pytest
 
-from maos.contracts import OutputValidationError, WorkflowRequest, parse_sections
+from maos.contracts import (
+    InvestmentAnalysis,
+    OutputValidationError,
+    ResearchReport,
+    WorkflowRequest,
+    parse_sections,
+)
 
 EXPECTED = ("Alpha", "Beta", "Gamma")
 VALID = "## Alpha\nA body.\n\n## Beta\nB body.\n\n## Gamma\nC body."
@@ -24,6 +30,17 @@ def test_parsed_sections_are_read_only():
     sections = parse_sections(VALID, EXPECTED)
     with pytest.raises(TypeError):
         sections["Alpha"] = "changed"
+
+
+@pytest.mark.parametrize("contract", [ResearchReport, InvestmentAnalysis])
+def test_stage_output_sections_cannot_be_modified(contract):
+    original = {"Alpha": "A body."}
+    output = contract(sections=original, markdown="## Alpha\nA body.")
+    with pytest.raises(TypeError):
+        output.sections["Alpha"] = "changed"
+    original["Alpha"] = "changed"
+    original["Beta"] = "added"
+    assert dict(output.sections) == {"Alpha": "A body."}
 
 
 def test_multiline_bodies_and_subheadings_are_kept():
@@ -240,6 +257,25 @@ def test_closing_hashes_need_a_preceding_space():
         "unexpected section: 'Beta##'",
         "missing section: Beta",
     )
+
+
+@pytest.mark.parametrize("indent", [" ", "  ", "   "])
+def test_headings_indented_up_to_three_spaces_are_recognised(indent):
+    sections = parse_sections(VALID.replace("## Gamma", f"{indent}## Gamma"), EXPECTED)
+    assert sections["Gamma"] == "C body."
+
+
+@pytest.mark.parametrize("indent", [" ", "  ", "   "])
+def test_indented_unexpected_heading_is_rejected(indent):
+    """Renders as a level-2 heading, so it must not slip into a section body."""
+    assert _problems(VALID.replace("B body.", f"B body.\n{indent}## Extra\nmore")) == (
+        "unexpected section: 'Extra'",
+    )
+
+
+def test_heading_indented_four_spaces_is_body_text():
+    body = "B body.\n    ## Extra"
+    assert parse_sections(VALID.replace("B body.", body), EXPECTED)["Beta"] == body
 
 
 @pytest.mark.parametrize("variant", ["**Beta**", "1. Beta", "Beta:"])
