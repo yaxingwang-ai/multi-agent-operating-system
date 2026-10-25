@@ -16,11 +16,12 @@ The first application built on this platform is **AI Investment Company**, an au
 
 ## 🚀 Current Development Stage
 
-Current Version: **V1.1 – First Executable Research Agent**
+Current Version: **V1.2 – Multi-Agent Workflow**
 
 - **V1.0** (tagged `v1.0.0`): system architecture and agent specifications
 - **V1.1**: the Research Agent runs from the command line
-- **Next:** V1.2 – Multi-Agent Workflow (planned)
+- **V1.2**: the Research Agent and Investment Analyst run as one workflow
+- **Next:** V1.3 – Tools and APIs (planned)
 
 Status: 🟢 Active Development
 
@@ -58,8 +59,19 @@ Knowledge --> Application["AI Investment Company"]
 Application --> Dashboard["Investment Dashboard"]
 ```
 
-This diagram shows the target architecture. Only the Research Agent is
-implemented so far; the other components are planned.
+This diagram shows the target architecture. The Research Agent and
+Investment Analyst are implemented so far; the other components are planned.
+
+The V1.2 workflow:
+
+```mermaid
+graph LR
+Request["User Request"] --> Research["Research Agent"]
+Research --> V1["Validate sections"]
+V1 --> Analyst["Investment Analyst"]
+Analyst --> V2["Validate sections"]
+V2 --> Report["Final Report"]
+```
 
 ---
 
@@ -71,7 +83,7 @@ Each agent has a written specification (system prompt) in
 | Agent | Specification | Status |
 |---|---|---|
 | Research Agent | [research-agent.md](docs/prompts/research-agent.md) | ✅ Executable (V1.1) |
-| Investment Analyst | [investment-analyst.md](docs/prompts/investment-analyst.md) | Specification only |
+| Investment Analyst | [investment-analyst.md](docs/prompts/investment-analyst.md) | ✅ Executable (V1.2) |
 | Risk Manager | [risk-manager.md](docs/prompts/risk-manager.md) | Specification only |
 | Portfolio Manager | [portfolio-manager.md](docs/prompts/portfolio-manager.md) | Specification only |
 | Market Monitor | [market-monitor.md](docs/prompts/market-monitor.md) | Specification only |
@@ -83,15 +95,22 @@ Each agent has a written specification (system prompt) in
 
 ### AI Investment Company
 
-The first working piece is the **Research Agent**. You give it a research
-request (optionally a company or market, topic, and time period), and it
-returns a structured Markdown report that separates facts from
-interpretations.
+You give MAOS a research request (optionally a company or market, topic,
+and time period).
 
-> **Limitation:** V1.1 has no live web search or market data. The agent
-> answers from its model knowledge only, which may be out of date, and any
-> sources it lists are unverified suggestions. Do not use its output as
-> current market data or investment advice.
+- `maos-research` (V1.1) runs the **Research Agent** alone and returns a
+  structured Markdown report that separates facts from interpretations.
+- `maos-workflow` (V1.2) passes that research to the **Investment Analyst**,
+  checks each agent's output has the required sections, and returns one
+  combined report.
+
+> **Limitation:** MAOS has no live web search or market data. The agents
+> answer from model knowledge only, which may be out of date, and any
+> sources they list are unverified suggestions. The Investment Analyst is
+> instructed not to give buy, sell, or hold recommendations, but this is a
+> prompt instruction, not a guarantee. **Nothing MAOS produces is investment
+> advice.** Do not use its output as current market data or to make
+> investment decisions.
 
 ---
 
@@ -130,14 +149,19 @@ pip install -e ".[dev]" -c constraints.txt
 cp .env.example .env   # then put your OpenAI API key in .env
 
 maos-research "Give an overview of the global semiconductor industry"
+maos-workflow "Give an overview of the global semiconductor industry"
 ```
 
-Each run makes a real API call and uses API credit. To run the offline
-tests (no API key or network needed), run `pytest`.
+Each run makes real API calls and uses API credit. A successful run makes
+one model call for `maos-research` and two for `maos-workflow`; the SDK
+retries some failed requests automatically, so the number of HTTP requests
+can be higher. To run the offline tests (no API key or network needed), run
+`pytest`.
 
 See the [Research Agent Setup Guide](docs/v1.1/research-agent-setup.md)
 for configuration, all command options, API key safety, and
-troubleshooting.
+troubleshooting, and the [Multi-Agent Workflow Guide](docs/v1.2/multi-agent-workflow.md)
+for the V1.2 workflow, its data contracts, and failure handling.
 
 ---
 
@@ -146,6 +170,6 @@ troubleshooting.
 | Version | Focus | Status |
 |---|---|---|
 | V1.1 | First executable Research Agent | ✅ Done |
-| V1.2 | Multi-Agent Workflow | Planned |
+| V1.2 | Multi-Agent Workflow | ✅ Done |
 | V1.3 | Tools and APIs | Planned |
 | V1.4 | MCP | Planned |

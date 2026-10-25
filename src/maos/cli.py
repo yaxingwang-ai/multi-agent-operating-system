@@ -4,13 +4,12 @@ import argparse
 import logging
 import sys
 
-import openai
 from agents import set_default_openai_key
-from agents.exceptions import AgentsException
 
 from maos import __version__
-from maos.agents.research_agent import EmptyResearchOutputError, run_research
+from maos.agents.research_agent import run_research
 from maos.config import ConfigError, load_settings
+from maos.errors import describe_run_error
 
 EXIT_OK = 0
 EXIT_RUN_ERROR = 1
@@ -29,6 +28,12 @@ def build_parser() -> argparse.ArgumentParser:
             "output is based on model knowledge only."
         ),
     )
+    add_request_arguments(parser)
+    return parser
+
+
+def add_request_arguments(parser: argparse.ArgumentParser) -> None:
+    """Add the request arguments shared by the MAOS commands."""
     parser.add_argument("request", help="the research request")
     parser.add_argument("--subject", help="company or market name")
     parser.add_argument("--topic", help="research topic")
@@ -36,7 +41,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--version", action="version", version=f"%(prog)s {__version__}"
     )
-    return parser
 
 
 def silence_sdk_logging() -> None:
@@ -73,7 +77,6 @@ def main(argv: list[str] | None = None) -> int:
     set_default_openai_key(settings.openai_api_key, use_for_tracing=False)
     silence_sdk_logging()
 
-    # Exception messages can echo part of the key, so only types are printed.
     # run_research() disables tracing before the SDK run.
     try:
         output = run_research(
@@ -86,29 +89,8 @@ def main(argv: list[str] | None = None) -> int:
     except KeyboardInterrupt:
         _error("interrupted.")
         return EXIT_INTERRUPTED
-    except openai.AuthenticationError:
-        _error("OpenAI rejected the API key. Check OPENAI_API_KEY.")
-        return EXIT_RUN_ERROR
-    except openai.RateLimitError:
-        _error("OpenAI rate limit or quota exceeded. Try again later.")
-        return EXIT_RUN_ERROR
-    except openai.APIConnectionError:
-        _error("could not connect to the OpenAI API. Check your network.")
-        return EXIT_RUN_ERROR
-    except openai.APIStatusError as exc:
-        _error(f"OpenAI API returned HTTP {exc.status_code}.")
-        return EXIT_RUN_ERROR
-    except openai.OpenAIError as exc:
-        _error(f"OpenAI request failed ({type(exc).__name__}).")
-        return EXIT_RUN_ERROR
-    except AgentsException as exc:
-        _error(f"agent run failed ({type(exc).__name__}).")
-        return EXIT_RUN_ERROR
-    except EmptyResearchOutputError:
-        _error("the agent returned no output.")
-        return EXIT_RUN_ERROR
     except Exception as exc:
-        _error(f"unexpected error ({type(exc).__name__}).")
+        _error(describe_run_error(exc))
         return EXIT_RUN_ERROR
 
     print(output)
