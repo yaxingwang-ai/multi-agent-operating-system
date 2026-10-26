@@ -9,6 +9,12 @@ The agent implements the V1.0 specification in
 [`docs/prompts/research-agent.md`](../prompts/research-agent.md), which is
 unchanged.
 
+> **Version note:** this guide describes the V1.1 Research Agent and its
+> `maos-research` command, which still work the same way in V1.2. The
+> installation, configuration, API key safety, and troubleshooting sections
+> also apply to V1.2. For the V1.2 multi-agent workflow (`maos-workflow`),
+> see the [Multi-Agent Workflow Guide](../v1.2/multi-agent-workflow.md).
+
 ## Scope and Limitations
 
 Included in V1.1:
@@ -24,7 +30,8 @@ Not included in V1.1:
 
 - Live search or any other tools. The V1.0 specification names Perplexity;
   it is not used in V1.1.
-- Handoff to the Financial Analyst or any other agent
+- Handoff to the Investment Analyst or any other agent (added in V1.2 by
+  `maos-workflow`; `maos-research` still runs the Research Agent alone)
 - MySQL, n8n, MCP, HTTP API
 - Tracing (explicitly disabled before every run)
 
@@ -32,8 +39,8 @@ Roadmap:
 
 | Version | Focus |
 |---|---|
-| V1.1 | First executable Research Agent |
-| V1.2 | Multi-Agent Workflow |
+| V1.1 | First executable Research Agent (this guide) |
+| V1.2 | Multi-Agent Workflow ([guide](../v1.2/multi-agent-workflow.md)) |
 | V1.3 | Tools and APIs |
 | V1.4 | MCP |
 
@@ -50,16 +57,23 @@ Do not use its output as current market data.
 
 ## Project Structure
 
+The files used by the Research Agent and `maos-research`, as of V1.2:
+
 ```text
 src/maos/
 ├── __init__.py              Package version
-├── __main__.py              Enables `python -m maos`
-├── cli.py                   Command-line interface and error handling
+├── __main__.py              Enables `python -m maos` (runs maos-research)
+├── cli.py                   maos-research command-line interface and shared CLI helpers
 ├── config.py                Environment configuration
+├── errors.py                Safe error messages (added in V1.2, shared by both commands)
 └── agents/
     └── research_agent.py    Research Agent definition and runner
 tests/                       Offline tests (no API key, no network)
 ```
+
+In V1.1, `cli.py` also contained the error messages that are now in
+`errors.py`; the messages are unchanged. The V1.2 workflow files are listed
+in the [Multi-Agent Workflow Guide](../v1.2/multi-agent-workflow.md#project-structure).
 
 The package is imported as `maos`, so `maos.agents` does not conflict with
 the OpenAI Agents SDK's top-level `agents` package.
